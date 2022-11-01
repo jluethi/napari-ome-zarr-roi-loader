@@ -1,0 +1,21 @@
+name: napari-ome-zarr-roi-loader
+display_name: OME-Zarr ROI loader
+contributions:
+  commands:
+    - id: napari-ome-zarr-roi-loader.make_qwidget
+      python_name: napari_ome_zarr_roi_loader._widget:ExampleQWidget
+      title: Make example QWidget
+    - id: napari-ome-zarr-roi-loader.make_magic_widget
+      python_name: napari_ome_zarr_roi_loader._widget:example_magic_widget
+      title: Make example magic widget
+    - id: napari-ome-zarr-roi-loader.make_func_widget
+      python_name: napari_ome_zarr_roi_loader._widget:example_function_widget
+      title: Make example function widget
+  widgets:
+    - command: napari-ome-zarr-roi-loader.make_qwidget
+      display_name: Example QWidget
+    - command: napari-ome-zarr-roi-loader.make_magic_widget
+      display_name: Example Magic Widget
+    - command: napari-ome-zarr-roi-loader.make_func_widget
+      autogenerate: true
+      display_name: Example Function Widget
