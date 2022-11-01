@@ -60,9 +60,6 @@ def _init_loading_widget(widget):
         widget.roi_table.reset_choices()
 
 
-# TODO: Init for ROI tables (drop down with relevant selection)
-# TODO: Init for channel/label selection
-# (separate the two or have them in one list?)
 @magic_factory(
     zarr_url={"label": "OME Zarr File", "mode": "d"},
     roi_table={"choices": [""], "label": "Name of ROI table:"},
@@ -76,8 +73,26 @@ def load_roi_widget(
     channel_index: int,
     level: int = 0,
 ):
-    # TODO: Refactor roi_index_of_interest & channel_index to be selectors
+    # TODO: Init for channel selection
+    # Allow channel selection by name via dropdown instead of channel_index
+
+    # TODO: Allow for label selection? Not in initial scope for first version
+
+    # TODO: Refactor roi_index_of_interest to be selectors
+    # Write a table loader that is cached.
+    # Use it here and for the actual loading in the utils
+    # => allows to do a check of the table here to list available ROIs &
+    # to run a check that the table corresponds to expectations, without
+    # loading it multiple time or overloading the
+    # `convert_ROI_table_to_indices` function
+
+    # TODO: Change level selection to a dropdown (similar to channels),
+    # but simpler
+
     # Current selection: Just for individual OME-Zarr images, not HCS plates
+
+    # TODO: Check that the ROI table contains relevant columns,
+    # throw an informative error otherwise
     print(roi_table)
     img_roi, scale_img = load_intensity_roi(
         zarr_url,
