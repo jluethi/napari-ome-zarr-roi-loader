@@ -32,6 +32,10 @@ def load_roi_widget(
     # Current selection: Just for individual OME-Zarr images, not HCS plates
 
     img_roi, scale_img = load_intensity_roi(
-        zarr_url, roi_index_of_interest, channel_index, level=0
+        zarr_url,
+        roi_index_of_interest,
+        channel_index,
+        level=level,
+        roi_table=roi_table,
     )
     viewer.add_image(img_roi, scale=scale_img)
