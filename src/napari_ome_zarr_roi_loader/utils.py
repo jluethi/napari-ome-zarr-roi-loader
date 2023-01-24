@@ -11,8 +11,7 @@ import zarr
 def convert_ROI_table_to_indices(
     ROI: ad.AnnData,
     level: int = 0,
-    coarsening_xy: int = 2,
-    full_res_pxl_sizes_zyx: Iterable[float] = None,
+    pxl_sizes_zyx: Iterable[float] = None,
     cols_xyz_pos: Iterable[str] = [
         "x_micrometer",
         "y_micrometer",
@@ -24,14 +23,13 @@ def convert_ROI_table_to_indices(
         "len_z_micrometer",
     ],
 ) -> List[List[int]]:
-    # Function from https://github.com/fractal-analytics-platform/fractal
+    # Function based on
+    # https://github.com/fractal-analytics-platform/fractal-tasks-core/blob/main/fractal_tasks_core/lib_regions_of_interest.py
+    # Modified to directly use the pixel sizes loaded from the metadata
     # Written by @tcompa (Tommaso Comparin)
 
     # Set pyramid-level pixel sizes
-    pxl_size_z, pxl_size_y, pxl_size_x = full_res_pxl_sizes_zyx
-    prefactor = coarsening_xy**level
-    pxl_size_x *= prefactor
-    pxl_size_y *= prefactor
+    pxl_size_z, pxl_size_y, pxl_size_x = pxl_sizes_zyx
 
     x_pos, y_pos, z_pos = cols_xyz_pos[:]
     x_len, y_len, z_len = cols_xyz_len[:]
@@ -40,7 +38,8 @@ def convert_ROI_table_to_indices(
     origin_y = min(ROI[:, y_pos].X[:, 0])
     origin_z = min(ROI[:, z_pos].X[:, 0])
 
-    list_indices = []
+    # list_indices = []
+    indices_dict = {}
     for FOV in ROI.obs_names:
 
         # Extract data from anndata table
@@ -64,9 +63,10 @@ def convert_ROI_table_to_indices(
         indices = list(map(round, indices))
 
         # Append ROI indices to to list
-        list_indices.append(indices[:])
+        # ist_indices.append(indices[:])
+        indices_dict[FOV] = indices[:]
 
-    return list_indices
+    return indices_dict
 
 
 # def load_label_roi_plate(
@@ -190,7 +190,7 @@ def convert_ROI_table_to_indices(
 
 def load_intensity_roi(
     zarr_url,
-    roi_index_of_interest,
+    roi_of_interest,
     channel_index,
     level=0,
     roi_table="FOV_ROI_table",
@@ -213,14 +213,14 @@ def load_intensity_roi(
         ][0]["scale"]
 
     # Get ROI indices for labels
-    list_indices = convert_ROI_table_to_indices(
+    indices_dict = convert_ROI_table_to_indices(
         roi_an,
         level=level,
-        full_res_pxl_sizes_zyx=scale_img,
+        pxl_sizes_zyx=scale_img,
     )
 
     # Get the indices for a given roi
-    indices = list_indices[roi_index_of_interest]
+    indices = indices_dict[roi_of_interest]
     s_z, e_z, s_y, e_y, s_x, e_x = indices[:]
 
     # Load labels
