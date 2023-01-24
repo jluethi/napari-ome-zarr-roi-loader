@@ -14,6 +14,9 @@ contributions:
     - id: napari-ome-zarr-roi-loader.load_roi_widget
       python_name: napari_ome_zarr_roi_loader.roi_loader_widget:load_roi_widget
       title: Load OME-Zarr ROI Widget
+    - id: napari-ome-zarr-roi-loader.roi_loader_widget
+      python_name: napari_ome_zarr_roi_loader.roi_loader_widget:RoiLoader
+      title: ROI Loader
   widgets:
     # - command: napari-ome-zarr-roi-loader.make_qwidget
     #   display_name: Example QWidget
@@ -24,3 +27,5 @@ contributions:
     #   display_name: Example Function Widget
     - command: napari-ome-zarr-roi-loader.load_roi_widget
       display_name: Load OME-Zarr ROI Widget
+    - command: napari-ome-zarr-roi-loader.roi_loader_widget
+      display_name: Load OME-Zarr ROI Widget new
