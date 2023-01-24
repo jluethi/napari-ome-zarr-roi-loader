@@ -1,5 +1,3 @@
-from functools import lru_cache
-from pathlib import Path
 from typing import Iterable, List
 
 import anndata as ad
@@ -190,19 +188,6 @@ def convert_ROI_table_to_indices(
 #     return colors_simple, label_properties
 
 
-@lru_cache(maxsize=16)
-def get_metadata(zarr_url):
-    with zarr.open(zarr_url) as metadata:
-        return metadata
-
-
-@lru_cache(maxsize=16)
-def read_roi_table(zarr_url: Path, roi_table):
-    # FIXME: Make this work for cloud-based files => different paths
-    table_url = zarr_url / f"tables/{roi_table}"
-    return ad.read_zarr(table_url)
-
-
 def load_intensity_roi(
     zarr_url,
     roi_of_interest,
@@ -217,15 +202,15 @@ def load_intensity_roi(
     # image per well) => FIXME for multiplexing
 
     # Get the ROI table
-    roi_an = read_roi_table(zarr_url, roi_table)
+    roi_an = ad.read_zarr(zarr_url / f"tables/{roi_table}")
 
     # Load the pixel sizes from the OME-Zarr file
     dataset = 0  # FIXME, hard coded in case multiple multiscale
     # datasets would be present & multiscales is a list
-    metadata = get_metadata(zarr_url)
-    scale_img = metadata.attrs["multiscales"][dataset]["datasets"][level][
-        "coordinateTransformations"
-    ][0]["scale"]
+    with zarr.open(zarr_url) as metadata:
+        scale_img = metadata.attrs["multiscales"][dataset]["datasets"][level][
+            "coordinateTransformations"
+        ][0]["scale"]
 
     # Get ROI indices for labels
     indices_dict = convert_ROI_table_to_indices(
