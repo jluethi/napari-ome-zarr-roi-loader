@@ -7,15 +7,23 @@ Joel Luethi, joel.luethi@fmi.ch
 import os
 
 import napari
-from magicgui.widgets import ComboBox, Container, FileEdit, PushButton
+import zarr
+from magicgui.widgets import ComboBox, Container, FileEdit, PushButton, Select
 from napari.utils.notifications import show_info
 
-from napari_ome_zarr_roi_loader.utils import load_intensity_roi
+from napari_ome_zarr_roi_loader.utils import (
+    get_channel_dict,
+    get_metadata,
+    load_intensity_roi,
+    read_roi_table,
+)
 
 
 class RoiLoader(Container):
     def __init__(self, viewer: napari.viewer.Viewer):
         self._viewer = viewer
+        self.channel_dict = {}
+        self.channel_names_dict = {}
         self._zarr_url_picker = FileEdit(label="Zarr URL")
         self._roi_table_picker = ComboBox(
             label="ROI Table", choices=self._get_roi_table_choices()
@@ -24,8 +32,9 @@ class RoiLoader(Container):
             label="ROI", choices=self._get_roi_choices()
         )
         # TODO: Make channel selection multi-select
-        self._channel_picker = ComboBox(
-            label="Channels", choices=self._get_channel_choices()
+        self._channel_picker = Select(
+            label="Channels",
+            choices=self._get_channel_choices(),
         )
         self._level_picker = ComboBox(
             label="Level", choices=self._get_level_choices()
@@ -49,21 +58,44 @@ class RoiLoader(Container):
         )
 
     def run(self):
-        selected_value = self._roi_table_picker.value
-        img_roi, scale_img = load_intensity_roi(
-            zarr_url=self._zarr_url_picker.value,
-            roi_of_interest=self._roi_picker.value,
-            channel_index=self._channel_picker.value,
-            level=self._level_picker.value,
-            roi_table=self._roi_table_picker.value,
-        )
-        self._viewer.add_image(img_roi, scale=scale_img)
+        roi_table = self._roi_table_picker.value
+        roi_name = self._roi_picker.value
+        level = self._level_picker.value
+        channels = self._channel_picker.value
+        blending = None
+        for channel in channels:
+            img_roi, scale_img = load_intensity_roi(
+                zarr_url=self._zarr_url_picker.value,
+                roi_of_interest=roi_name,
+                channel_index=self.channel_names_dict[channel],
+                level=level,
+                roi_table=roi_table,
+            )
+            channel_meta = self.channel_dict[self.channel_names_dict[channel]]
+            # TODO: Figure out how to use the colormaps from the metadata
+            # colormap = channel_meta["color"]
+            # TODO: Make rescaling optional?
+            rescaling = (
+                channel_meta["window"]["start"],
+                channel_meta["window"]["end"],
+            )
+            self._viewer.add_image(
+                img_roi,
+                scale=scale_img,
+                blending=blending,
+                contrast_limits=rescaling,
+            )
+            blending = "additive"
 
         # FIXME: For some reason, running currently resets the
         # self._roi_table_picker choices to an empty list. This works around
-        # that. No idea why this reset is happening though.
+        # that. No idea why this reset is happening though. See
+        # https://github.com/jluethi/napari-ome-zarr-roi-loader/issues/3
         self.update_roi_tables()
-        self._roi_table_picker.value = selected_value
+        self._roi_table_picker.value = roi_table
+        self._roi_picker.value = roi_name
+        self._level_picker.value = level
+        self._channel_picker.value = channels
 
     def update_roi_tables(self):
         """
@@ -72,8 +104,9 @@ class RoiLoader(Container):
         self._roi_table_picker.choices = self._get_roi_table_choices()
 
     def update_roi_selection(self):
-        print("ROI table picker has changed")
-        # TODO: Trigger update of level, channels & ROI choices
+        self._roi_picker.choices = self._get_roi_choices()
+        self._channel_picker.choices = self._get_channel_choices()
+        self._level_picker.choices = self._get_level_choices()
 
     def _get_roi_table_choices(self):
         try:
@@ -98,13 +131,34 @@ class RoiLoader(Container):
             return [""]
 
     def _get_roi_choices(self):
-        # FIXME: Add actual inference for choices
-        return ["FOV_36"]
+        if not self._roi_table_picker.value:
+            # When no roi table is provided.
+            # E.g. during bug with self._roi_table_picker reset
+            return [""]
+        try:
+            roi_table = read_roi_table(
+                self._zarr_url_picker.value, self._roi_table_picker.value
+            )
+            return list(roi_table.obs_names)
+        except zarr.errors.PathNotFoundError:
+            return [""]
 
     def _get_channel_choices(self):
-        # FIXME: Add actual inference for choices
-        return [0]
+        self.channel_dict = get_channel_dict(self._zarr_url_picker.value)
+        self.channel_names_dict = {}
+        for channel_index in self.channel_dict.keys():
+            channel_name = self.channel_dict[channel_index]["label"]
+            self.channel_names_dict[channel_name] = channel_index
+        return list(self.channel_names_dict.keys())
 
     def _get_level_choices(self):
-        # FIXME: Add actual inference for choices
-        return [0, 1, 2, 3, 4]
+        try:
+            metadata = get_metadata(self._zarr_url_picker.value)
+            dataset = 0  # FIXME, hard coded in case multiple multiscale
+            # datasets would be present & multiscales is a list
+            nb_levels = len(metadata.attrs["multiscales"][dataset]["datasets"])
+            return list(range(nb_levels))
+        except KeyError:
+            # This happens when no valid OME-Zarr file is selected, thus no
+            # metadata file is found & no levels can be set
+            return [""]
