@@ -1,7 +1,10 @@
+from napari_ome_zarr_roi_loader.roi_loader_widget import RoiLoader
+
+
 def test_example_magic_widget(make_napari_viewer, capsys):
     # TODO: Actually write the test
-    pass
-    # viewer = make_napari_viewer()
+    viewer = make_napari_viewer()
+    _ = RoiLoader(viewer)
     # layer = viewer.add_image(np.random.random((100, 100)))
     # my_widget = load_intensity_roi()
 
