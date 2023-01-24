@@ -9,17 +9,14 @@
 
 Loads ROIs stored in OME-Zarr tables
 
+![ROI_loader_example](https://user-images.githubusercontent.com/18033446/214337778-48cc48d6-7149-4db7-823c-c5196ee3fd32.jpg)
+
+
+This plugin is designed to load regions of interest from OME-Zarr files, as produced by [Fractal](https://fractal-analytics-platform.github.io).
+
+It works with individual OME-Zarr files. If you have an HCS OME-Zarr plate, select an image within a well (i.e. select `/path/to/plate.ome.zarr/B/03/0`) as the Zarr URL.
+
 ----------------------------------
-
-This [napari] plugin was generated with [Cookiecutter] using [@napari]'s [cookiecutter-napari-plugin] template.
-
-<!--
-Don't miss the full getting started guide to set up your new package:
-https://github.com/napari/cookiecutter-napari-plugin#getting-started
-
-and review the napari docs for plugin developers:
-https://napari.org/stable/plugins/index.html
--->
 
 ## Installation
 
