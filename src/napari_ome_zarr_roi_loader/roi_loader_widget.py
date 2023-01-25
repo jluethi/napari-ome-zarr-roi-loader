@@ -24,7 +24,7 @@ class RoiLoader(Container):
         self._viewer = viewer
         self.channel_dict = {}
         self.channel_names_dict = {}
-        self._zarr_url_picker = FileEdit(label="Zarr URL")
+        self._zarr_url_picker = FileEdit(label="Zarr URL", mode="d")
         self._roi_table_picker = ComboBox(
             label="ROI Table", choices=self._get_roi_table_choices()
         )
@@ -62,6 +62,11 @@ class RoiLoader(Container):
         roi_name = self._roi_picker.value
         level = self._level_picker.value
         channels = self._channel_picker.value
+        if len(channels) < 1:
+            show_info(
+                "No channel selected. Select the channels you want to load"
+            )
+            return
         blending = None
         for channel in channels:
             img_roi, scale_img = load_intensity_roi(
