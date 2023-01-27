@@ -25,21 +25,17 @@ class RoiLoader(Container):
         self.channel_dict = {}
         self.channel_names_dict = {}
         self._zarr_url_picker = FileEdit(label="Zarr URL", mode="d")
-        self._roi_table_picker = ComboBox(
-            label="ROI Table", choices=self._get_roi_table_choices()
-        )
-        self._roi_picker = ComboBox(
-            label="ROI", choices=self._get_roi_choices()
-        )
-        # TODO: Make channel selection multi-select
+        self._roi_table_picker = ComboBox(label="ROI Table")
+        self._roi_picker = ComboBox(label="ROI")
         self._channel_picker = Select(
             label="Channels",
-            choices=self._get_channel_choices(),
         )
-        self._level_picker = ComboBox(
-            label="Level", choices=self._get_level_choices()
-        )
+        self._level_picker = ComboBox(label="Level")
         self._run_button = PushButton(value=False, text="Load ROI")
+
+        # Initialize possible choices
+        self.update_roi_tables()
+        self.update_roi_selection()
 
         # Update selections & bind buttons
         self._zarr_url_picker.changed.connect(self.update_roi_tables)
@@ -96,22 +92,34 @@ class RoiLoader(Container):
         # self._roi_table_picker choices to an empty list. This works around
         # that. No idea why this reset is happening though. See
         # https://github.com/jluethi/napari-ome-zarr-roi-loader/issues/3
-        self.update_roi_tables()
-        self._roi_table_picker.value = roi_table
-        self._roi_picker.value = roi_name
-        self._level_picker.value = level
-        self._channel_picker.value = channels
+        # self.update_roi_tables()
+        # self._roi_table_picker.value = roi_table
+        # self._roi_picker.value = roi_name
+        # self._level_picker.value = level
+        # self._channel_picker.value = channels
 
     def update_roi_tables(self):
         """
         Handles updating the list of available ROI tables
         """
-        self._roi_table_picker.choices = self._get_roi_table_choices()
+        # Uses the `_default_choices` to avoid having choices reset.
+        # See https://github.com/pyapp-kit/magicgui/issues/306
+        roi_table = self._get_roi_table_choices()
+        self._roi_table_picker.choices = roi_table
+        self._roi_table_picker._default_choices = roi_table
 
     def update_roi_selection(self):
-        self._roi_picker.choices = self._get_roi_choices()
-        self._channel_picker.choices = self._get_channel_choices()
-        self._level_picker.choices = self._get_level_choices()
+        # Uses the `_default_choices` to avoid having choices reset.
+        # See https://github.com/pyapp-kit/magicgui/issues/306
+        new_rois = self._get_roi_choices()
+        self._roi_picker.choices = new_rois
+        self._roi_picker._default_choices = new_rois
+        channels = self._get_channel_choices()
+        self._channel_picker.choices = channels
+        self._channel_picker._default_choices = channels
+        levels = self._get_level_choices()
+        self._level_picker.choices = levels
+        self._level_picker._default_choices = levels
 
     def _get_roi_table_choices(self):
         try:
@@ -125,7 +133,7 @@ class RoiLoader(Container):
                 show_info("No tables found")
                 return [""]
             else:
-                return tables
+                return sorted(tables)
         except FileNotFoundError:
             return [""]
         except Exception as e:
@@ -144,9 +152,11 @@ class RoiLoader(Container):
             roi_table = read_roi_table(
                 self._zarr_url_picker.value, self._roi_table_picker.value
             )
-            return list(roi_table.obs_names)
+            new_choices = list(roi_table.obs_names)
+            return new_choices
         except zarr.errors.PathNotFoundError:
-            return [""]
+            new_choices = [""]
+            return new_choices
 
     def _get_channel_choices(self):
         self.channel_dict = get_channel_dict(self._zarr_url_picker.value)
