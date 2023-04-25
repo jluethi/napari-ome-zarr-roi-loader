@@ -17,6 +17,7 @@ from napari_ome_zarr_roi_loader.utils import (
     get_label_dict,
     get_metadata,
     load_intensity_roi,
+    load_label_roi,
     read_roi_table,
 )
 
@@ -33,7 +34,7 @@ class RoiLoader(Container):
         self._channel_picker = Select(
             label="Channels",
         )
-        self._level_picker = ComboBox(label="Level")
+        self._level_picker = ComboBox(label="Image Level")
         self._label_picker = Select(
             label="Labels",
         )
@@ -65,9 +66,11 @@ class RoiLoader(Container):
         roi_name = self._roi_picker.value
         level = self._level_picker.value
         channels = self._channel_picker.value
-        if len(channels) < 1:
+        labels = self._label_picker.value
+        if len(channels) < 1 and len(labels) < 1:
             show_info(
-                "No channel selected. Select the channels you want to load"
+                "No channel or labels selected. "
+                "Select the channels/labels you want to load"
             )
             return
         blending = None
@@ -94,6 +97,17 @@ class RoiLoader(Container):
                 contrast_limits=rescaling,
             )
             blending = "additive"
+
+        # Load labels
+        for label in labels:
+            label_roi, scale_label = load_label_roi(
+                zarr_url=self._zarr_url_picker.value,
+                roi_of_interest=roi_name,
+                label_name=label,
+                level=0,  # FIXME: Allow loading of labels at different levels?
+                roi_table=roi_table,
+            )
+            self._viewer.add_labels(label_roi, scale=scale_label)
 
     def update_roi_tables(self):
         """
@@ -173,11 +187,6 @@ class RoiLoader(Container):
             Path(self._zarr_url_picker.value) / "labels"
         )
         return list(self.label_dict.values())
-        # self.labels_names_dict = {}
-        # for label_index in self.label_dict.keys():
-        #     label_name = self.label_dict[label_index]
-        #     self.labels_names_dict[label_name] = label_index
-        # return list(self.labels_names_dict.keys())
 
     def _get_level_choices(self):
         try:

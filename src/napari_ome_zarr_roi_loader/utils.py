@@ -205,3 +205,47 @@ def load_intensity_roi(
     # TODO: Load the rescaling parameters & also return those
 
     return np.array(img_roi), scale_img
+
+
+def load_label_roi(
+    zarr_url,
+    roi_of_interest,
+    label_name,
+    level=0,
+    roi_table="FOV_ROI_table",
+):
+    # Loads the label image of a given ROI in a well
+    # returns the image as a numpy array + a list of the image scale
+
+    # image_index defaults to 0 (Change if you have more than one
+    # image per well) => FIXME for multiplexing
+
+    # Get the ROI table
+    roi_an = read_roi_table(zarr_url, roi_table)
+
+    # Load the pixel sizes from the OME-Zarr file
+    dataset = 0  # FIXME, hard coded in case multiple multiscale
+    # datasets would be present & multiscales is a list
+    metadata = get_metadata(zarr_url / "labels" / label_name)
+    scale_lbls = metadata.attrs["multiscales"][dataset]["datasets"][level][
+        "coordinateTransformations"
+    ][0]["scale"]
+
+    # Get ROI indices for labels
+    indices_dict = convert_ROI_table_to_indices(
+        roi_an,
+        level=level,
+        pxl_sizes_zyx=scale_lbls,
+    )
+
+    # Get the indices for a given roi
+    indices = indices_dict[roi_of_interest]
+    s_z, e_z, s_y, e_y, s_x, e_x = indices[:]
+
+    # Load data
+    lbl_data_zyx = da.from_zarr(zarr_url / "labels" / label_name / str(level))
+    lbl_roi = lbl_data_zyx[s_z:e_z, s_y:e_y, s_x:e_x]
+
+    # TODO: Load the rescaling parameters & also return those
+
+    return np.array(lbl_roi), scale_lbls
