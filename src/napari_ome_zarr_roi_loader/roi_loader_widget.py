@@ -97,7 +97,6 @@ class RoiLoader(Container):
                 ["#000000", f"#{channel_meta['color']}"],
                 name=channel_meta["color"],
             )
-            print(channel_meta["color"])
             try:
                 rescaling = (
                     channel_meta["window"]["start"],

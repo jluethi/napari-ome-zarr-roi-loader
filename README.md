@@ -12,10 +12,6 @@ Loads ROIs stored in OME-Zarr tables
 ![ROI_loader_example](https://user-images.githubusercontent.com/18033446/214337778-48cc48d6-7149-4db7-823c-c5196ee3fd32.jpg)
 
 
-This plugin is designed to load regions of interest from OME-Zarr files, as produced by [Fractal](https://fractal-analytics-platform.github.io).
-
-It works with individual OME-Zarr files. If you have an HCS OME-Zarr plate, select an image within a well (i.e. select `/path/to/plate.ome.zarr/B/03/0`) as the Zarr URL.
-
 ----------------------------------
 
 ## Installation
@@ -24,6 +20,29 @@ To install latest development version :
 
     pip install git+https://github.com/jluethi/napari-ome-zarr-roi-loader.git
 
+
+## Usage
+
+This plugin is designed to load regions of interest from OME-Zarr files, as produced by [Fractal](https://fractal-analytics-platform.github.io).
+
+### Using the plugin
+1. **Zarr URL:** Select an OME-Zarr file. If it's a HCS plate, select an image in a well, i.e. `/path/to/plate.ome.zarr/B/03/0`
+2. **ROI Table:** Select which ROI table to use to load the regions of interest. Only Fractal ROI tables are valid choices
+3. **ROI:** Select the region of interest you want to load from the dropdown
+4. **Channels:**: Select which channels should be loaded. You can select multiple channels to load at the same time.
+5. **Image Level:** Pick the resolution level at which the image data is loaded. The higher the number, the lower the resolution of the image will be (and the quicker it will load)
+6. **Labels:** Pick the label layers to load. They will be loaded at the same resolution as the image layer (or whichever resolution is closest to it) and scaled according to their metadata to fit the image layer.
+7. **Features:** Select which feature tables to load and to append to the label layer. It loads the features for the OME-Zarr image and appends the features for the labels that are present in the label image selected to the label_layer.features dataframe. Currently only loading a single feature table is supported and it's always appened to the label layer that is selected. Loading features when multiple label layers are selected is not supported.
+8. **Load ROI:** Click to load all the selected channels, labels & features of the selected region of interest. The plugin loads the whole data into memory. Thus, loading large amounts of image data (large ROIs at high resolution or 3D data) on a slow connection can make the napari viewer freeze for a while. Normally, it loads the data eventually.
+
+### Exporting ROI image
+You can use napari's built-in image export to save an image that was loaded to disk, e.g. as a TIF:
+1. Open the region of interest you're looking for (using the instructions above)
+2. Select the layer you're interested in.
+3. Go to the `File` menu and click `Save selected Layer(s)`
+4. Choose a location and a name to save the image
+
+----------------------------------
 
 ## Contributing
 
