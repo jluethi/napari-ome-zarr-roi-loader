@@ -144,6 +144,25 @@ def get_channel_dict(zarr_url):
     return channel_dict
 
 
+def get_label_dict(label_zarr_url):
+    # Based on the label_zarr_url, load the available labels
+    # params: label_zarr_url: Path to the label folder in the OME-Zarr file
+
+    # Check that the label folder exists
+    if not label_zarr_url.exists():
+        return {}
+
+    metadata = get_metadata(label_zarr_url)
+    label_dict = {}
+    try:
+        for i, label in enumerate(metadata.attrs["labels"]):
+            label_dict[i] = label
+    except KeyError:
+        pass
+
+    return label_dict
+
+
 def load_intensity_roi(
     zarr_url,
     roi_of_interest,
@@ -183,6 +202,82 @@ def load_intensity_roi(
     img_data_zyx = da.from_zarr(f"{zarr_url}/{level}")[channel_index]
     img_roi = img_data_zyx[s_z:e_z, s_y:e_y, s_x:e_x]
 
-    # TODO: Load the rescaling parameters & also return those
-
     return np.array(img_roi), scale_img
+
+
+def load_label_roi(
+    zarr_url,
+    roi_of_interest,
+    label_name,
+    target_scale=None,
+    roi_table="FOV_ROI_table",
+):
+    # Loads the label image of a given ROI in a well
+    # returns the image as a numpy array + a list of the image scale
+
+    # Get the ROI table
+    roi_an = read_roi_table(zarr_url, roi_table)
+
+    # Load the pixel sizes from the OME-Zarr file
+    scales = get_available_scales(zarr_url / "labels" / label_name)
+    if target_scale:
+        level = get_closest_scale(target_scale, scales)
+        scale_lbls = scales[level]
+    else:
+        level = "0"
+        scale_lbls = scales[level]
+
+    # Get ROI indices for labels
+    indices_dict = convert_ROI_table_to_indices(
+        roi_an,
+        level=level,
+        pxl_sizes_zyx=scale_lbls,
+    )
+
+    # Get the indices for a given roi
+    indices = indices_dict[roi_of_interest]
+    s_z, e_z, s_y, e_y, s_x, e_x = indices[:]
+
+    # Load data
+    lbl_data_zyx = da.from_zarr(zarr_url / "labels" / label_name / level)
+    lbl_roi = lbl_data_zyx[s_z:e_z, s_y:e_y, s_x:e_x]
+
+    return np.array(lbl_roi), scale_lbls
+
+
+def get_available_scales(zarr_url):
+    metadata = get_metadata(zarr_url)
+    dataset = 0  # FIXME, hard coded in case multiple multiscale
+    # datasets would be present & multiscales is a list
+    available_scales = {}
+    levels = metadata.attrs["multiscales"][dataset]["datasets"]
+    for level in levels:
+        for transformation in level["coordinateTransformations"]:
+            if transformation["type"] == "scale":
+                available_scales[level["path"]] = transformation["scale"]
+            else:
+                pass
+                # Ignore other transformations
+    return available_scales
+
+
+def get_closest_scale(target_scale, scales):
+    """
+    Should mostly provide either the highest resolution or the one exactly
+    matching the target scale, given that label images are usually downsampled.
+    But would need to generalize to handle arbitrary target_scales better.
+
+    params: target_scale: list of floats
+            scales: dict of scales. Keys are the names of the folders in the
+                    OME-Zarr, values are the scales (list of floats)
+    """
+    closest_scale = list(scales.keys())[0]
+    for key, val in scales.items():
+        if np.linalg.norm(
+            np.array(val) - np.array(target_scale)
+        ) < np.linalg.norm(
+            np.array(scales[closest_scale]) - np.array(target_scale)
+        ):
+            closest_scale = key
+
+    return closest_scale
