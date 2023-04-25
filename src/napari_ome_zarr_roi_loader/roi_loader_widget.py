@@ -4,21 +4,24 @@ This widget allows users to load individual ROIs from an OME-Zarr file
 Written by:
 Joel Luethi, joel.luethi@fmi.ch
 """
-import os
 from pathlib import Path
 
 import napari
+import numpy as np
 import zarr
 from magicgui.widgets import ComboBox, Container, FileEdit, PushButton, Select
+from napari.utils.colormaps import Colormap
 from napari.utils.notifications import show_info
 
 from napari_ome_zarr_roi_loader.utils import (
     get_channel_dict,
+    get_feature_dict,
     get_label_dict,
     get_metadata,
+    load_features,
     load_intensity_roi,
     load_label_roi,
-    read_roi_table,
+    read_table,
 )
 
 
@@ -38,10 +41,13 @@ class RoiLoader(Container):
         self._label_picker = Select(
             label="Labels",
         )
+        self._feature_picker = Select(
+            label="Features",
+        )
         self._run_button = PushButton(value=False, text="Load ROI")
 
         # Initialize possible choices
-        self.update_roi_tables()
+        # self.update_roi_tables()
         self.update_roi_selection()
 
         # Update selections & bind buttons
@@ -57,6 +63,7 @@ class RoiLoader(Container):
                 self._channel_picker,
                 self._level_picker,
                 self._label_picker,
+                self._feature_picker,
                 self._run_button,
             ]
         )
@@ -75,6 +82,8 @@ class RoiLoader(Container):
             return
         blending = None
         scale_img = None
+
+        # Load intensity images
         for channel in channels:
             img_roi, scale_img = load_intensity_roi(
                 zarr_url=self._zarr_url_picker.value,
@@ -84,22 +93,30 @@ class RoiLoader(Container):
                 roi_table=roi_table,
             )
             channel_meta = self.channel_dict[self.channel_names_dict[channel]]
-            # TODO: Figure out how to use the colormaps from the metadata
-            # colormap = channel_meta["color"]
-            # TODO: Make rescaling optional?
-            rescaling = (
-                channel_meta["window"]["start"],
-                channel_meta["window"]["end"],
+            colormap = Colormap(
+                ["#000000", f"#{channel_meta['color']}"],
+                name=channel_meta["color"],
             )
+            print(channel_meta["color"])
+            try:
+                rescaling = (
+                    channel_meta["window"]["start"],
+                    channel_meta["window"]["end"],
+                )
+            except KeyError:
+                rescaling = None
+
             self._viewer.add_image(
                 img_roi,
                 scale=scale_img,
                 blending=blending,
                 contrast_limits=rescaling,
+                colormap=colormap,
             )
             blending = "additive"
 
         # Load labels
+        label_layers = []
         for label in labels:
             label_roi, scale_label = load_label_roi(
                 zarr_url=self._zarr_url_picker.value,
@@ -108,7 +125,68 @@ class RoiLoader(Container):
                 target_scale=scale_img,
                 roi_table=roi_table,
             )
-            self._viewer.add_labels(label_roi, scale=scale_label)
+            label_layers.append(
+                self._viewer.add_labels(label_roi, scale=scale_label)
+            )
+
+        # Load features
+        # Initially a bearbones implementation that only works when a single
+        # label image is also loaded at that moment
+        features = self._feature_picker.value
+        if len(features) > 0:
+            if len(labels) != 1:
+                show_info(
+                    "Not implemented yet: Please select exactly one label "
+                    "image to load features for"
+                )
+                return
+            else:
+                # TODO: Implement loading multiple features at once
+                # (and mapping them to the correct labels)
+                if len(features) > 1:
+                    show_info(
+                        "Not implemented yet: Please select exactly one "
+                        "feature to load"
+                    )
+                    return
+                else:
+                    # Actual feature loading
+                    feature_table = features[0]
+                    feature_ad = load_features(
+                        zarr_url=self._zarr_url_picker.value,
+                        feature_table=feature_table,
+                    )
+                    label_layer = label_layers[0]
+                    if "label" in feature_ad.obs:
+                        # TODO: Only load the feature for the ROI,
+                        # not the whole table
+                        labels_current_layer = np.unique(label_layer.data)[1:]
+                        shared_labels = list(
+                            set(feature_ad.obs["label"].astype(int))
+                            & set(labels_current_layer)
+                        )
+                        features_roi = feature_ad[
+                            feature_ad.obs["label"]
+                            .astype(int)
+                            .isin(shared_labels)
+                        ]
+                        features_df = features_roi.to_df()
+                        features_df["label"] = feature_ad.obs["label"].astype(
+                            int
+                        )
+                        features_df[
+                            "roi_id"
+                        ] = f"{self._zarr_url_picker.value}:ROI_{roi_name}"
+                        features_df.set_index(
+                            "label", inplace=True, drop=False
+                        )
+                        label_layer.features = features_df
+                    else:
+                        show_info(
+                            f"Table {feature_table} does not have a label obs "
+                            "column, can't be loaded as features for the "
+                            f"layer {label_layer}"
+                        )
 
     def update_roi_tables(self):
         """
@@ -116,11 +194,16 @@ class RoiLoader(Container):
         """
         # Uses the `_default_choices` to avoid having choices reset.
         # See https://github.com/pyapp-kit/magicgui/issues/306
-        roi_table = self._get_roi_table_choices()
-        self._roi_table_picker.choices = roi_table
-        self._roi_table_picker._default_choices = roi_table
+        # roi_table = self._get_roi_table_choices()
+        roi_tables = self._get_table_choices(type="ROIs")
+        self._roi_table_picker.choices = roi_tables
+        self._roi_table_picker._default_choices = roi_tables
+        self.update_roi_selection()
 
     def update_roi_selection(self):
+        """
+        Updates all selections that depend on which ROI table was selected
+        """
         # Uses the `_default_choices` to avoid having choices reset.
         # See https://github.com/pyapp-kit/magicgui/issues/306
         new_rois = self._get_roi_choices()
@@ -138,27 +221,10 @@ class RoiLoader(Container):
         self._label_picker.choices = labels
         self._label_picker._default_choices = labels
 
-    def _get_roi_table_choices(self):
-        try:
-            # FIXME: How to make this work also with remote urls like AWS?
-            tables = [
-                f
-                for f in os.listdir(self._zarr_url_picker.value / "tables")
-                if not f.startswith(".")
-            ]
-            if len(tables) == 0:
-                show_info("No tables found")
-                return [""]
-            else:
-                return sorted(tables)
-        except FileNotFoundError:
-            return [""]
-        except Exception as e:
-            print(
-                f"An {type(e)} Exception occured: \n{e}\n"
-                "No ROI table choices were loaded"
-            )
-            return [""]
+        # Initialize available features
+        features = self._get_table_choices(type="features")
+        self._feature_picker.choices = features
+        self._feature_picker._default_choices = features
 
     def _get_roi_choices(self):
         if not self._roi_table_picker.value:
@@ -166,7 +232,7 @@ class RoiLoader(Container):
             # E.g. during bug with self._roi_table_picker reset
             return [""]
         try:
-            roi_table = read_roi_table(
+            roi_table = read_table(
                 self._zarr_url_picker.value, self._roi_table_picker.value
             )
             new_choices = list(roi_table.obs_names)
@@ -186,6 +252,14 @@ class RoiLoader(Container):
     def _get_label_choices(self):
         self.label_dict = get_label_dict(
             Path(self._zarr_url_picker.value) / "labels"
+        )
+        return list(self.label_dict.values())
+
+    def _get_table_choices(self, type):
+        # TODO: Once we have relevant metadata, allow this function to only
+        # load ROI tables or only feature tables => type features or ROIs
+        self.label_dict = get_feature_dict(
+            Path(self._zarr_url_picker.value) / "tables"
         )
         return list(self.label_dict.values())
 
