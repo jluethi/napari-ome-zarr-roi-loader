@@ -12,7 +12,6 @@ import zarr
 
 def convert_ROI_table_to_indices(
     ROI: ad.AnnData,
-    level: int = 0,
     pxl_sizes_zyx: Iterable[float] = None,
     cols_xyz_pos: Iterable[str] = [
         "x_micrometer",
@@ -71,54 +70,6 @@ def convert_ROI_table_to_indices(
     return indices_dict
 
 
-# def load_label_roi_plate(
-#     zarr_url,
-#     well,
-#     roi_index_of_interest,
-#     labels_name,
-#     level=0,
-#     image_index=0,
-#     roi_table="FOV_ROI_table",
-# ):
-#     # Loads the label image of a given ROI in a well
-#     # returns the image as a numpy array + a list of the image scale
-
-#     # image_index defaults to 0 (Change if you have more
-#     # than one image per well) => FIXME for multiplexing
-
-#     # Get the ROI table
-#     roi_an = ad.read_zarr(
-#         zarr_url / f"{well}/{image_index}/tables/{roi_table}"
-#     )
-
-#     # Load the pixel sizes from the OME-Zarr file
-#     attrs_path = zarr_url / f"{well}/{image_index}/labels/{labels_name}"
-#     dataset = 0  # FIXME, hard coded in case multiple multiscale
-#     # datasets would be present & multiscales is a list
-#     with zarr.open(attrs_path) as metadata:
-#         scale_labels = metadata.attrs["multiscales"][dataset]["datasets"][
-#             level
-#         ]["coordinateTransformations"][0]["scale"]
-
-#     # Get ROI indices for labels
-#     list_indices = convert_ROI_table_to_indices(
-#         roi_an,
-#         level=level,
-#         full_res_pxl_sizes_zyx=scale_labels,
-#     )
-
-#     # Get the indices for a given roi
-#     indices = list_indices[roi_index_of_interest]
-#     s_z, e_z, s_y, e_y, s_x, e_x = indices[:]
-
-#     # Load labels
-#     label_data_zyx = da.from_zarr(
-#         zarr_url / f"{well}/{image_index}/labels/{labels_name}/{level}"
-#     )
-#     label_roi = label_data_zyx[s_z:e_z, s_y:e_y, s_x:e_x]
-#     return np.array(label_roi), scale_labels
-
-
 @lru_cache(maxsize=16)
 def get_metadata(zarr_url):
     with zarr.open(zarr_url) as metadata:
@@ -126,7 +77,7 @@ def get_metadata(zarr_url):
 
 
 @lru_cache(maxsize=16)
-def read_roi_table(zarr_url: Path, roi_table):
+def read_table(zarr_url: Path, roi_table):
     # FIXME: Make this work for cloud-based files => different paths
     table_url = zarr_url / f"tables/{roi_table}"
     return ad.read_zarr(table_url)
@@ -163,6 +114,35 @@ def get_label_dict(label_zarr_url):
     return label_dict
 
 
+def get_feature_dict(feature_zarr_url):
+    # Based on the label_zarr_url, load the available feature tables
+    # params: feature_zarr_url: Path to the label folder in the OME-Zarr file
+
+    # TODO: Once we have metadata for it, exclude ROI tables from this list
+
+    # Check that the label folder exists
+    if not feature_zarr_url.exists():
+        return {}
+
+    metadata = get_metadata(feature_zarr_url)
+    label_dict = {}
+    try:
+        for i, feature in enumerate(metadata.attrs["tables"]):
+            label_dict[i] = feature
+    except KeyError:
+        pass
+
+    return label_dict
+
+
+def load_features(zarr_url, feature_table):
+    # Load the feature table from the OME-Zarr file
+    # params: zarr_url: Path to the OME-Zarr file (the base folder)
+    # params: feature_table: Name of the feature table to load
+    feature_ad = read_table(zarr_url, feature_table)
+    return feature_ad
+
+
 def load_intensity_roi(
     zarr_url,
     roi_of_interest,
@@ -177,7 +157,7 @@ def load_intensity_roi(
     # image per well) => FIXME for multiplexing
 
     # Get the ROI table
-    roi_an = read_roi_table(zarr_url, roi_table)
+    roi_an = read_table(zarr_url, roi_table)
 
     # Load the pixel sizes from the OME-Zarr file
     dataset = 0  # FIXME, hard coded in case multiple multiscale
@@ -190,7 +170,6 @@ def load_intensity_roi(
     # Get ROI indices for labels
     indices_dict = convert_ROI_table_to_indices(
         roi_an,
-        level=level,
         pxl_sizes_zyx=scale_img,
     )
 
@@ -216,7 +195,7 @@ def load_label_roi(
     # returns the image as a numpy array + a list of the image scale
 
     # Get the ROI table
-    roi_an = read_roi_table(zarr_url, roi_table)
+    roi_an = read_table(zarr_url, roi_table)
 
     # Load the pixel sizes from the OME-Zarr file
     scales = get_available_scales(zarr_url / "labels" / label_name)
@@ -230,7 +209,6 @@ def load_label_roi(
     # Get ROI indices for labels
     indices_dict = convert_ROI_table_to_indices(
         roi_an,
-        level=level,
         pxl_sizes_zyx=scale_lbls,
     )
 
