@@ -9,7 +9,8 @@
 
 Loads ROIs stored in OME-Zarr tables
 
-![ROI_loader_example](https://user-images.githubusercontent.com/18033446/214337778-48cc48d6-7149-4db7-823c-c5196ee3fd32.jpg)
+
+![ROI_loader_example](https://user-images.githubusercontent.com/18033446/234389807-c2af9214-9742-4acb-91c1-bfb9c27f6fa2.jpg)
 
 
 ----------------------------------
@@ -35,12 +36,18 @@ This plugin is designed to load regions of interest from OME-Zarr files, as prod
 7. **Features:** Select which feature tables to load and to append to the label layer. It loads the features for the OME-Zarr image and appends the features for the labels that are present in the label image selected to the label_layer.features dataframe. Currently only loading a single feature table is supported and it's always appened to the label layer that is selected. Loading features when multiple label layers are selected is not supported.
 8. **Load ROI:** Click to load all the selected channels, labels & features of the selected region of interest. The plugin loads the whole data into memory. Thus, loading large amounts of image data (large ROIs at high resolution or 3D data) on a slow connection can make the napari viewer freeze for a while. Normally, it loads the data eventually.
 
+![ROI_Loader_with_Labels](https://user-images.githubusercontent.com/18033446/234390387-e9880009-ee33-4ef3-9b10-7ebd29713fa5.jpg)
+
+
 ### Exporting ROI image
 You can use napari's built-in image export to save an image that was loaded to disk, e.g. as a TIF:
 1. Open the region of interest you're looking for (using the instructions above)
 2. Select the layer you're interested in.
 3. Go to the `File` menu and click `Save selected Layer(s)`
+![SaveSelectedLayer](https://user-images.githubusercontent.com/18033446/234390405-a2d6be02-d78e-414d-8376-46846d7828f3.jpg)
+
 4. Choose a location and a name to save the image
+![SaveDialogue](https://user-images.githubusercontent.com/18033446/234390414-2bf950a3-8c13-452f-b18e-a9f5acc0f6b9.jpg)
 
 ----------------------------------
 
