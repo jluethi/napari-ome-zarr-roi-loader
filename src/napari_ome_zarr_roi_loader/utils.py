@@ -144,6 +144,25 @@ def get_channel_dict(zarr_url):
     return channel_dict
 
 
+def get_label_dict(label_zarr_url):
+    # Based on the label_zarr_url, load the available labels
+    # params: label_zarr_url: Path to the label folder in the OME-Zarr file
+
+    # Check that the label folder exists
+    if not label_zarr_url.exists():
+        return {}
+
+    metadata = get_metadata(label_zarr_url)
+    label_dict = {}
+    try:
+        for i, label in enumerate(metadata.attrs["labels"]):
+            label_dict[i] = label
+    except KeyError:
+        pass
+
+    return label_dict
+
+
 def load_intensity_roi(
     zarr_url,
     roi_of_interest,

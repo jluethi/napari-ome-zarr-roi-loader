@@ -5,6 +5,7 @@ Written by:
 Joel Luethi, joel.luethi@fmi.ch
 """
 import os
+from pathlib import Path
 
 import napari
 import zarr
@@ -13,6 +14,7 @@ from napari.utils.notifications import show_info
 
 from napari_ome_zarr_roi_loader.utils import (
     get_channel_dict,
+    get_label_dict,
     get_metadata,
     load_intensity_roi,
     read_roi_table,
@@ -24,6 +26,7 @@ class RoiLoader(Container):
         self._viewer = viewer
         self.channel_dict = {}
         self.channel_names_dict = {}
+        self.labels_dict = {}
         self._zarr_url_picker = FileEdit(label="Zarr URL", mode="d")
         self._roi_table_picker = ComboBox(label="ROI Table")
         self._roi_picker = ComboBox(label="ROI")
@@ -31,6 +34,9 @@ class RoiLoader(Container):
             label="Channels",
         )
         self._level_picker = ComboBox(label="Level")
+        self._label_picker = Select(
+            label="Labels",
+        )
         self._run_button = PushButton(value=False, text="Load ROI")
 
         # Initialize possible choices
@@ -49,6 +55,7 @@ class RoiLoader(Container):
                 self._roi_picker,
                 self._channel_picker,
                 self._level_picker,
+                self._label_picker,
                 self._run_button,
             ]
         )
@@ -88,16 +95,6 @@ class RoiLoader(Container):
             )
             blending = "additive"
 
-        # FIXME: For some reason, running currently resets the
-        # self._roi_table_picker choices to an empty list. This works around
-        # that. No idea why this reset is happening though. See
-        # https://github.com/jluethi/napari-ome-zarr-roi-loader/issues/3
-        # self.update_roi_tables()
-        # self._roi_table_picker.value = roi_table
-        # self._roi_picker.value = roi_name
-        # self._level_picker.value = level
-        # self._channel_picker.value = channels
-
     def update_roi_tables(self):
         """
         Handles updating the list of available ROI tables
@@ -120,6 +117,11 @@ class RoiLoader(Container):
         levels = self._get_level_choices()
         self._level_picker.choices = levels
         self._level_picker._default_choices = levels
+
+        # Initialize available label images
+        labels = self._get_label_choices()
+        self._label_picker.choices = labels
+        self._label_picker._default_choices = labels
 
     def _get_roi_table_choices(self):
         try:
@@ -165,6 +167,17 @@ class RoiLoader(Container):
             channel_name = self.channel_dict[channel_index]["label"]
             self.channel_names_dict[channel_name] = channel_index
         return list(self.channel_names_dict.keys())
+
+    def _get_label_choices(self):
+        self.label_dict = get_label_dict(
+            Path(self._zarr_url_picker.value) / "labels"
+        )
+        return list(self.label_dict.values())
+        # self.labels_names_dict = {}
+        # for label_index in self.label_dict.keys():
+        #     label_name = self.label_dict[label_index]
+        #     self.labels_names_dict[label_name] = label_index
+        # return list(self.labels_names_dict.keys())
 
     def _get_level_choices(self):
         try:
