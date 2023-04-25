@@ -74,6 +74,7 @@ class RoiLoader(Container):
             )
             return
         blending = None
+        scale_img = None
         for channel in channels:
             img_roi, scale_img = load_intensity_roi(
                 zarr_url=self._zarr_url_picker.value,
@@ -104,7 +105,7 @@ class RoiLoader(Container):
                 zarr_url=self._zarr_url_picker.value,
                 roi_of_interest=roi_name,
                 label_name=label,
-                level=0,  # FIXME: Allow loading of labels at different levels?
+                target_scale=scale_img,
                 roi_table=roi_table,
             )
             self._viewer.add_labels(label_roi, scale=scale_label)
