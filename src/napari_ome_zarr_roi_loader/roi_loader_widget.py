@@ -151,41 +151,46 @@ class RoiLoader(Container):
                 else:
                     # Actual feature loading
                     feature_table = features[0]
-                    feature_ad = load_features(
-                        zarr_url=self._zarr_url_picker.value,
-                        feature_table=feature_table,
-                    )
                     label_layer = label_layers[0]
-                    if "label" in feature_ad.obs:
-                        # TODO: Only load the feature for the ROI,
-                        # not the whole table
-                        labels_current_layer = np.unique(label_layer.data)[1:]
-                        shared_labels = list(
-                            set(feature_ad.obs["label"].astype(int))
-                            & set(labels_current_layer)
-                        )
-                        features_roi = feature_ad[
-                            feature_ad.obs["label"]
-                            .astype(int)
-                            .isin(shared_labels)
-                        ]
-                        features_df = features_roi.to_df()
-                        features_df["label"] = feature_ad.obs["label"].astype(
-                            int
-                        )
-                        features_df[
-                            "roi_id"
-                        ] = f"{self._zarr_url_picker.value}:ROI_{roi_name}"
-                        features_df.set_index(
-                            "label", inplace=True, drop=False
-                        )
-                        label_layer.features = features_df
-                    else:
-                        show_info(
-                            f"Table {feature_table} does not have a label obs "
-                            "column, can't be loaded as features for the "
-                            f"layer {label_layer}"
-                        )
+                    self.add_feature_table_to_layer(
+                        feature_table,
+                        label_layer,
+                        roi_name,
+                    )
+
+    def add_feature_table_to_layer(self, feature_table, label_layer, roi_name):
+        feature_ad = load_features(
+            zarr_url=self._zarr_url_picker.value,
+            feature_table=feature_table,
+        )
+        if "label" in feature_ad.obs:
+            # TODO: Only load the feature for the ROI,
+            # not the whole table
+            labels_current_layer = np.unique(label_layer.data)[1:]
+            shared_labels = list(
+                set(feature_ad.obs["label"].astype(int))
+                & set(labels_current_layer)
+            )
+            features_roi = feature_ad[
+                feature_ad.obs["label"].astype(int).isin(shared_labels)
+            ]
+            features_df = features_roi.to_df()
+            # Drop duplicate columns
+            features_df = features_df.loc[
+                :, ~features_df.columns.duplicated()
+            ].copy()
+            features_df["label"] = feature_ad.obs["label"].astype(int)
+            features_df[
+                "roi_id"
+            ] = f"{self._zarr_url_picker.value}:ROI_{roi_name}"
+            features_df.set_index("label", inplace=True, drop=False)
+            label_layer.features = features_df
+        else:
+            show_info(
+                f"Table {feature_table} does not have a label obs "
+                "column, can't be loaded as features for the "
+                f"layer {label_layer}"
+            )
 
     def update_roi_tables(self):
         """
