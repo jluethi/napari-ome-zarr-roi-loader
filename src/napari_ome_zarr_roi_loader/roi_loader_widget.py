@@ -298,7 +298,11 @@ class RoiLoader(Container):
         self.label_dict = get_feature_dict(
             Path(self._zarr_url_picker.value) / "tables"
         )
-        return list(self.label_dict.values())
+        potential_tables = list(self.label_dict.values())
+        if type == "ROIs":
+            return [table for table in potential_tables if "ROI" in table]
+        else:
+            return [table for table in potential_tables if "ROI" not in table]
 
     def _get_level_choices(self):
         try:
