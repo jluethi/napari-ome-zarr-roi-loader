@@ -9,7 +9,14 @@ from pathlib import Path
 import napari
 import numpy as np
 import zarr
-from magicgui.widgets import ComboBox, Container, FileEdit, PushButton, Select
+from magicgui.widgets import (
+    CheckBox,
+    ComboBox,
+    Container,
+    FileEdit,
+    PushButton,
+    Select,
+)
 from napari.utils.colormaps import Colormap
 from napari.utils.notifications import show_info
 
@@ -44,6 +51,9 @@ class RoiLoader(Container):
         self._feature_picker = Select(
             label="Features",
         )
+        self._reset_origin = CheckBox(
+            label="Reset ROI Origin",
+        )
         self._run_button = PushButton(value=False, text="Load ROI")
 
         # Initialize possible choices
@@ -64,6 +74,7 @@ class RoiLoader(Container):
                 self._level_picker,
                 self._label_picker,
                 self._feature_picker,
+                self._reset_origin,
                 self._run_button,
             ]
         )
@@ -74,6 +85,7 @@ class RoiLoader(Container):
         level = self._level_picker.value
         channels = self._channel_picker.value
         labels = self._label_picker.value
+        reset_origin = self._reset_origin.value
         if len(channels) < 1 and len(labels) < 1:
             show_info(
                 "No channel or labels selected. "
@@ -91,7 +103,15 @@ class RoiLoader(Container):
                 channel_index=self.channel_names_dict[channel],
                 level=level,
                 roi_table=roi_table,
+                reset_origin=reset_origin,
             )
+            if not np.any(img_roi):
+                show_info(
+                    "Could not load this ROI. Did you correctly set the "
+                    "`Reset ROI Origin`?"
+                )
+                return
+
             channel_meta = self.channel_dict[self.channel_names_dict[channel]]
             colormap = Colormap(
                 ["#000000", f"#{channel_meta['color']}"],
@@ -123,7 +143,14 @@ class RoiLoader(Container):
                 label_name=label,
                 target_scale=scale_img,
                 roi_table=roi_table,
+                reset_origin=reset_origin,
             )
+            if not np.any(label_roi):
+                show_info(
+                    "Could not load this ROI. Did you correctly set the "
+                    "`Reset ROI Origin`?"
+                )
+                return
             label_layers.append(
                 self._viewer.add_labels(label_roi, scale=scale_label)
             )
@@ -229,6 +256,12 @@ class RoiLoader(Container):
         features = self._get_table_choices(type="features")
         self._feature_picker.choices = features
         self._feature_picker._default_choices = features
+
+        # Heuristic to set the origin reset
+        if self._roi_table_picker.value in ["FOV_ROI_table", "well_ROI_table"]:
+            self._reset_origin.value = True
+        else:
+            self._reset_origin.value = False
 
     def _get_roi_choices(self):
         if not self._roi_table_picker.value:

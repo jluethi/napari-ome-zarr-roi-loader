@@ -23,6 +23,7 @@ def convert_ROI_table_to_indices(
         "len_y_micrometer",
         "len_z_micrometer",
     ],
+    reset_origin=False,
 ) -> List[List[int]]:
     # Function based on
     # https://github.com/fractal-analytics-platform/fractal-tasks-core/blob/main/fractal_tasks_core/lib_regions_of_interest.py
@@ -35,9 +36,14 @@ def convert_ROI_table_to_indices(
     x_pos, y_pos, z_pos = cols_xyz_pos[:]
     x_len, y_len, z_len = cols_xyz_len[:]
 
-    origin_x = min(ROI[:, x_pos].X[:, 0])
-    origin_y = min(ROI[:, y_pos].X[:, 0])
-    origin_z = min(ROI[:, z_pos].X[:, 0])
+    if reset_origin:
+        origin_x = min(ROI[:, x_pos].X[:, 0])
+        origin_y = min(ROI[:, y_pos].X[:, 0])
+        origin_z = min(ROI[:, z_pos].X[:, 0])
+    else:
+        origin_x = 0.0
+        origin_y = 0.0
+        origin_z = 0.0
 
     # list_indices = []
     indices_dict = {}
@@ -149,6 +155,7 @@ def load_intensity_roi(
     channel_index,
     level=0,
     roi_table="FOV_ROI_table",
+    reset_origin=False,
 ):
     # Loads the intensity image of a given ROI in a well
     # returns the image as a numpy array + a list of the image scale
@@ -171,6 +178,7 @@ def load_intensity_roi(
     indices_dict = convert_ROI_table_to_indices(
         roi_an,
         pxl_sizes_zyx=scale_img,
+        reset_origin=reset_origin,
     )
 
     # Get the indices for a given roi
@@ -190,6 +198,7 @@ def load_label_roi(
     label_name,
     target_scale=None,
     roi_table="FOV_ROI_table",
+    reset_origin=False,
 ):
     # Loads the label image of a given ROI in a well
     # returns the image as a numpy array + a list of the image scale
@@ -210,6 +219,7 @@ def load_label_roi(
     indices_dict = convert_ROI_table_to_indices(
         roi_an,
         pxl_sizes_zyx=scale_lbls,
+        reset_origin=reset_origin,
     )
 
     # Get the indices for a given roi
