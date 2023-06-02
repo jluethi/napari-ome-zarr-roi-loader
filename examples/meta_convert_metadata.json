@@ -1,5 +1,4 @@
 {
-    "parallelization_level": "plate",
     "cpus_per_task": 1,
     "mem": 1000
 }

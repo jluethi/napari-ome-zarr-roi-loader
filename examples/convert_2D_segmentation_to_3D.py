@@ -18,6 +18,15 @@ def read_table(zarr_url: Path, roi_table):
     return ad.read_zarr(table_url)
 
 
+def update_table_metadata(group_tables, table_name):
+    if "tables" not in group_tables.attrs:
+        group_tables.attrs["tables"] = [table_name]
+    elif table_name not in group_tables.attrs["tables"]:
+        group_tables.attrs["tables"] = group_tables.attrs["tables"] + [
+            table_name
+        ]
+
+
 def convert_2D_segmentation_to_3D(
     input_paths,
     output_path,
@@ -31,6 +40,12 @@ def convert_2D_segmentation_to_3D(
     z_pixel_size: float = None,
 ):
     """
+    This task loads the 2D segmentation, replicates it along the Z slice and
+    stores it back into the 3D OME-Zarr image.
+
+    This is a temporary workaround task, as long as we store 2D data in
+    a separate OME-Zarr file from the 3D data. Also, some assumptions are made
+    on the metadata structure, generalization to be tested.
 
     :param input_paths: List of paths to the input files (Fractal managed)
     :param output_path: Path to the output file (Fractal managed)
@@ -76,9 +91,6 @@ def convert_2D_segmentation_to_3D(
         coordinate_transforms_label_img = zarr_label_img.attrs["multiscales"][
             0
         ]["datasets"]
-        # label_img_scale = zarr_label_img.attrs["multiscales"][0]["datasets"][
-        #     level
-        # ]["coordinateTransformations"][0]["scale"]
 
     # 1b) Get number z planes & Z spacing from 3D OME-Zarr file
     with zarr.open(zarr_3D_url, mode="rw+") as zarr_img:
@@ -131,10 +143,7 @@ def convert_2D_segmentation_to_3D(
             write_elem(group_tables, new_table_name, roi_an)
 
             # Update the tables .zattrs for the new table
-            if new_table_name not in group_tables.attrs["tables"]:
-                group_tables.attrs["tables"] = group_tables.attrs["tables"] + [
-                    new_table_name
-                ]
+            update_table_metadata(group_tables, new_table_name)
 
     return {}
 
