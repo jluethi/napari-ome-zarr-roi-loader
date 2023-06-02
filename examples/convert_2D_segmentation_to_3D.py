@@ -18,6 +18,15 @@ def read_table(zarr_url: Path, roi_table):
     return ad.read_zarr(table_url)
 
 
+def update_table_metadata(group_tables, table_name):
+    if "tables" not in group_tables.attrs:
+        group_tables.attrs["tables"] = [table_name]
+    elif table_name not in group_tables.attrs["tables"]:
+        group_tables.attrs["tables"] = group_tables.attrs["tables"] + [
+            table_name
+        ]
+
+
 def convert_2D_segmentation_to_3D(
     input_paths,
     output_path,
@@ -134,10 +143,7 @@ def convert_2D_segmentation_to_3D(
             write_elem(group_tables, new_table_name, roi_an)
 
             # Update the tables .zattrs for the new table
-            if new_table_name not in group_tables.attrs["tables"]:
-                group_tables.attrs["tables"] = group_tables.attrs["tables"] + [
-                    new_table_name
-                ]
+            update_table_metadata(group_tables, new_table_name)
 
     return {}
 
