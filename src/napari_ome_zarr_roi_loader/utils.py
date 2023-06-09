@@ -174,7 +174,17 @@ def load_intensity_roi(
         "coordinateTransformations"
     ][0]["scale"]
 
+    # FIXME: This is a hack to deal with the fact that the scale can contain
+    # the channel as well and out processing functions don't handle that well.
+    if len(scale_img) == 4:
+        scale_img = scale_img[1:]
+
     # Get ROI indices for labels
+    # FIXME: Switch to a more robust way of loading indices when the
+    # dimensionality of the image can vary. This only works for 3D images
+    # (all Yokogawa images are saved as 3D images) and
+    # by accident for 2D MD images (if they are multichannel)
+    # See issue 420 on fractal-tasks-core
     indices_dict = convert_ROI_table_to_indices(
         roi_an,
         pxl_sizes_zyx=scale_img,
@@ -187,7 +197,13 @@ def load_intensity_roi(
 
     # Load data
     img_data_zyx = da.from_zarr(f"{zarr_url}/{level}")[channel_index]
-    img_roi = img_data_zyx[s_z:e_z, s_y:e_y, s_x:e_x]
+    if len(img_data_zyx.shape) == 2:
+        img_roi = img_data_zyx[s_y:e_y, s_x:e_x]
+        # FIXME: Hacky way to drop the channel dimension from the scale
+        # (for MD data)
+        scale_img = scale_img[1:]
+    else:
+        img_roi = img_data_zyx[s_z:e_z, s_y:e_y, s_x:e_x]
 
     return np.array(img_roi), scale_img
 
@@ -208,6 +224,11 @@ def load_label_roi(
 
     # Load the pixel sizes from the OME-Zarr file
     scales = get_available_scales(zarr_url / "labels" / label_name)
+
+    # FIXME: Handling 2D images vs. 3D label images. More general solution?
+    if len(target_scale) == 2 and len(scales["0"]) == 3:
+        target_scale = [1] + target_scale
+
     if target_scale:
         level = get_closest_scale(target_scale, scales)
         scale_lbls = scales[level]
@@ -215,7 +236,17 @@ def load_label_roi(
         level = "0"
         scale_lbls = scales[level]
 
+    # FIXME: This is a hack to deal with the fact that the scale can contain
+    # the channel as well and out processing functions don't handle that well.
+    if len(scale_lbls) == 4:
+        scale_lbls = scale_lbls[1:]
+
     # Get ROI indices for labels
+    # FIXME: Switch to a more robust way of loading indices when the
+    # dimensionality of the image can vary. This only works for 3D images
+    # (all Yokogawa images are saved as 3D images) and
+    # by accident for 2D MD images (if they are multichannel)
+    # See issue 420 on fractal-tasks-core
     indices_dict = convert_ROI_table_to_indices(
         roi_an,
         pxl_sizes_zyx=scale_lbls,
