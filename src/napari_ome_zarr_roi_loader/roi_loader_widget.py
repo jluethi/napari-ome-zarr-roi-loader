@@ -131,6 +131,7 @@ class RoiLoader(Container):
                 blending=blending,
                 contrast_limits=rescaling,
                 colormap=colormap,
+                name=channel,
             )
             blending = "additive"
 
@@ -152,7 +153,9 @@ class RoiLoader(Container):
                 )
                 return
             label_layers.append(
-                self._viewer.add_labels(label_roi, scale=scale_label)
+                self._viewer.add_labels(
+                    label_roi, scale=scale_label, name=label
+                )
             )
 
         # Load features
