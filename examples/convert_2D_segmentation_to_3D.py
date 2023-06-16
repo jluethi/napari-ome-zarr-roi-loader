@@ -7,7 +7,6 @@ import anndata as ad
 import dask.array as da
 import numpy as np
 import zarr
-from anndata.experimental import write_elem
 from ome_zarr.writer import write_labels
 
 logger = logging.getLogger(__name__)
@@ -18,13 +17,20 @@ def read_table(zarr_url: Path, roi_table):
     return ad.read_zarr(table_url)
 
 
-def update_table_metadata(group_tables, table_name):
+def update_tables_metadata(group_tables, table_name, label_name):
+    # Update the list of available tables
     if "tables" not in group_tables.attrs:
         group_tables.attrs["tables"] = [table_name]
     elif table_name not in group_tables.attrs["tables"]:
         group_tables.attrs["tables"] = group_tables.attrs["tables"] + [
             table_name
         ]
+
+    # Add relevant metadata to the table output
+    new_table = group_tables.require_group(table_name)
+    new_table.attrs["instance_key"] = "label"
+    new_table.attrs["region"] = {"path": f"../labels/{label_name}"}
+    new_table.attrs["type"] = "ngff:region_table"
 
 
 def convert_2D_segmentation_to_3D(
@@ -140,10 +146,11 @@ def convert_2D_segmentation_to_3D(
 
             # Save the ROI table to the 3D OME-Zarr file
             group_tables = zarr_img.require_group("tables/")
-            write_elem(group_tables, new_table_name, roi_an)
+            ad._io.specs.write_elem(group_tables, new_table_name, roi_an)
 
-            # Update the tables .zattrs for the new table
-            update_table_metadata(group_tables, new_table_name)
+            # Update the tables .zattrs for tables list and
+            # the .zattrs for the new table
+            update_tables_metadata(group_tables, new_table_name, label_name)
 
     return {}
 
