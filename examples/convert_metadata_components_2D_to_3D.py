@@ -1,12 +1,18 @@
 """Convert metdata components from 2D to 3D Fractal task"""
 import logging
-from typing import Any, Dict, Optional, Sequence
+
+from pydantic.decorator import validate_arguments
 
 logger = logging.getLogger(__name__)
 
 
+@validate_arguments
 def convert_metadata_components_2D_to_3D(
-    input_paths, output_path, metadata, from_2d_to_3d: bool = True
+    input_paths,
+    output_path,
+    metadata,
+    from_2d_to_3d: bool = True,
+    suffix: str = "mip",
 ):
     """
     Workaround task to manually change the hard-coded metadata components
@@ -18,8 +24,9 @@ def convert_metadata_components_2D_to_3D(
     :param component: Component name, e.g. "plate_name.zarr/B/03/0"
                       (Fractal managed)
     :param metadata: Metadata dictionary (Fractal managed)
-    :param from_2d_to_3d: If True, removes the mip suffix. If False,
-                          adds the mip suffix to the metadata
+    :param from_2d_to_3d: If True, removes the suffix. If False,
+                          adds the suffix to the metadata
+    :param suffix: Suffix of the 2D OME-Zarr
     """
     old_image_list = metadata["image"]
     old_well_list = metadata["well"]
@@ -28,11 +35,11 @@ def convert_metadata_components_2D_to_3D(
     new_well_list = []
     new_plate_list = []
     if from_2d_to_3d:
-        old_value = "_mip.zarr"
+        old_value = f"_{suffix}.zarr"
         new_value = ".zarr"
     else:
         old_value = ".zarr"
-        new_value = "_mip.zarr"
+        new_value = f"_{suffix}.zarr"
     for image in old_image_list:
         new_image_list.append(image.replace(old_value, new_value))
     for well in old_well_list:
@@ -48,16 +55,8 @@ def convert_metadata_components_2D_to_3D(
 
 if __name__ == "__main__":
     from fractal_tasks_core._utils import run_fractal_task
-    from pydantic import BaseModel, Extra
-
-    class TaskArguments(BaseModel, extra=Extra.forbid):
-        input_paths: Sequence[str]
-        output_path: str
-        metadata: Dict[str, Any]
-        from_2d_to_3d: Optional[bool]
 
     run_fractal_task(
         task_function=convert_metadata_components_2D_to_3D,
-        TaskArgsModel=TaskArguments,
         logger_name=logger.name,
     )

@@ -1,14 +1,14 @@
 """Fractal task to convert 2D segmentations into 3D segmentations"""
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional, Sequence
 
 import anndata as ad
 import dask.array as da
 import numpy as np
 import zarr
-from anndata.experimental import write_elem
+from anndata._io.specs import write_elem
 from ome_zarr.writer import write_labels
+from pydantic.decorator import validate_arguments
 
 logger = logging.getLogger(__name__)
 
@@ -27,17 +27,18 @@ def update_table_metadata(group_tables, table_name):
         ]
 
 
+@validate_arguments
 def convert_2D_segmentation_to_3D(
     input_paths,
     output_path,
     component,
     metadata,
     label_name: str,
-    ROI_tables_to_copy: list,
+    ROI_tables_to_copy: list[str],
     new_label_name: str = None,
     new_table_names: list = None,
     level: int = 0,
-    z_pixel_size: float = None,
+    suffix: str = "mip",
 ):
     """
     This task loads the 2D segmentation, replicates it along the Z slice and
@@ -61,19 +62,16 @@ def convert_2D_segmentation_to_3D(
     :param new_table_names: Optionally overwriting the names of the ROI tables
                             in the 3D OME-Zarr
     :param level: Level of the 2D OME-Zarr label to copy from
-    :param z_pixel_size: Overwrite the Z pixel size if needed (should be
-                         detected from metadata though)
+    :param suffix: Suffix of the 2D OME-Zarr to copy from
     """
     # TODO: Not using output_path atm, but hard-coded to expect the output
     # component in the input path
-    # Only works to move labels when original components are labeled
-    # as _mip.zarr
 
     if level != 0:
         raise NotImplementedError("Only level 0 is supported at the moment")
     zarr_url = Path(input_paths[0]) / component
     zarr_3D_url = Path(input_paths[0]) / component.replace(
-        "_mip.zarr", ".zarr"
+        f"_{suffix}.zarr", ".zarr"
     )
     if new_label_name is None:
         new_label_name = label_name
@@ -96,11 +94,9 @@ def convert_2D_segmentation_to_3D(
     with zarr.open(zarr_3D_url, mode="rw+") as zarr_img:
         zarr_3D = da.from_zarr(zarr_img[0])
         new_z_planes = zarr_3D.shape[-3]
-        z_pixel_size_meta = zarr_img.attrs["multiscales"][0]["datasets"][0][
+        z_pixel_size = zarr_img.attrs["multiscales"][0]["datasets"][0][
             "coordinateTransformations"
         ][0]["scale"][0]
-        if not z_pixel_size:
-            z_pixel_size = z_pixel_size_meta
 
     # 2) Create the 3D stack of the label image
     label_img_3D = da.stack([label_img.squeeze()] * new_z_planes)
@@ -150,22 +146,8 @@ def convert_2D_segmentation_to_3D(
 
 if __name__ == "__main__":
     from fractal_tasks_core._utils import run_fractal_task
-    from pydantic import BaseModel, Extra
-
-    class TaskArguments(BaseModel, extra=Extra.forbid):
-        input_paths: Sequence[str]
-        output_path: str
-        component: str
-        metadata: Dict[str, Any]
-        label_name: str
-        ROI_tables_to_copy: list
-        new_label_name: Optional[str]
-        new_table_names: Optional[list[str]]
-        level: Optional[int]
-        z_pixel_size: Optional[float]
 
     run_fractal_task(
         task_function=convert_2D_segmentation_to_3D,
-        TaskArgsModel=TaskArguments,
         logger_name=logger.name,
     )
