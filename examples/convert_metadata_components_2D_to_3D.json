@@ -1,0 +1,36 @@
+{
+  "title": "ConvertMetadataComponents2dTo3d",
+  "type": "object",
+  "properties": {
+    "input_paths": {
+      "title": "Input Paths",
+      "description": "List of paths to the input files (Fractal managed)"
+    },
+    "output_path": {
+      "title": "Output Path",
+      "description": "Path to the output file (Fractal managed)"
+    },
+    "metadata": {
+      "title": "Metadata",
+      "description": "Metadata dictionary (Fractal managed)"
+    },
+    "from_2d_to_3d": {
+      "title": "From 2D To 3D",
+      "default": true,
+      "type": "boolean",
+      "description": "If True, removes the suffix. If False, adds the suffix to the metadata"
+    },
+    "suffix": {
+      "title": "Suffix",
+      "default": "mip",
+      "type": "string",
+      "description": "Suffix of the 2D OME-Zarr"
+    }
+  },
+  "required": [
+    "input_paths",
+    "output_path",
+    "metadata"
+  ],
+  "additionalProperties": false
+}

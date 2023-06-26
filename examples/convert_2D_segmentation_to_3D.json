@@ -1,0 +1,67 @@
+{
+  "title": "Convert2dSegmentationTo3d",
+  "type": "object",
+  "properties": {
+    "input_paths": {
+      "title": "Input Paths",
+      "description": "List of paths to the input files (Fractal managed)"
+    },
+    "output_path": {
+      "title": "Output Path",
+      "description": "Path to the output file (Fractal managed)"
+    },
+    "component": {
+      "title": "Component",
+      "description": "Component name, e.g. \"plate_name.zarr/B/03/0\" (Fractal managed)"
+    },
+    "metadata": {
+      "title": "Metadata",
+      "description": "Metadata dictionary (Fractal managed)"
+    },
+    "label_name": {
+      "title": "Label Name",
+      "type": "string",
+      "description": "Name of the label to copy from 2D OME-Zarr to 3D OME-Zarr"
+    },
+    "ROI_tables_to_copy": {
+      "title": "Roi Tables To Copy",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of ROI table names to copy from 2D OME-Zarr to 3D OME-Zarr"
+    },
+    "new_label_name": {
+      "title": "New Label Name",
+      "type": "string",
+      "description": "Optionally overwriting the name of the label in the 3D OME-Zarr"
+    },
+    "new_table_names": {
+      "title": "New Table Names",
+      "type": "array",
+      "items": {},
+      "description": "Optionally overwriting the names of the ROI tables in the 3D OME-Zarr"
+    },
+    "level": {
+      "title": "Level",
+      "default": 0,
+      "type": "integer",
+      "description": "Level of the 2D OME-Zarr label to copy from"
+    },
+    "suffix": {
+      "title": "Suffix",
+      "default": "mip",
+      "type": "string",
+      "description": "Suffix of the 2D OME-Zarr to copy from"
+    }
+  },
+  "required": [
+    "input_paths",
+    "output_path",
+    "component",
+    "metadata",
+    "label_name",
+    "ROI_tables_to_copy"
+  ],
+  "additionalProperties": false
+}
