@@ -12,7 +12,7 @@ conda create --name fractal_2d_to_3D_tasks python=3.9 -y
 2. Install the dependencies
 
 ```
-pip install fractal-task-core==0.10.0
+pip install fractal-tasks-core==0.10.0
 pip install ome-zarr
 pip install zarr
 pip install anndata
