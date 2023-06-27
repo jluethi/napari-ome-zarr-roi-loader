@@ -9,7 +9,10 @@ I'm creating a 2D to 3D workflow. It will consist of 2 tasks.
 conda create --name fractal_2d_to_3D_tasks python=3.9 -y
 ```
 
-2. Install the dependencies
+2. ACtivate this conda environment: `conda activate fractal_2d_to_3D_tasks`
+
+
+3. Install the dependencies
 
 ```
 pip install fractal-tasks-core==0.10.0
@@ -20,7 +23,7 @@ pip install dask
 pip install pydantic
 ```
 
-3. Add the task via CLI client
+4. Add the task via CLI client
 ```
 fractal task new --input-type image --output-type zarr --version 0.0.1 --meta-file /path/to/meta_conversion.json --args-schema /path/to/convert_2D_segmentation_to_3D.json --args-schema-version pydantic_v1 "Convert 2D Segmentation to 3D" "/path/to/python /path/to/convert_2D_segmentation_to_3D.py" convert_2D_segmentation_to_3D_0.0.1
 
