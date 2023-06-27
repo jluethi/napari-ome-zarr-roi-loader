@@ -9,7 +9,7 @@ I'm creating a 2D to 3D workflow. It will consist of 2 tasks.
 conda create --name fractal_2d_to_3D_tasks python=3.9 -y
 ```
 
-2. ACtivate this conda environment: `conda activate fractal_2d_to_3D_tasks`
+2. Activate this conda environment: `conda activate fractal_2d_to_3D_tasks`
 
 
 3. Install the dependencies
