@@ -214,6 +214,8 @@ class RoiLoader(Container):
                 "roi_id"
             ] = f"{self._zarr_url_picker.value}:ROI_{roi_name}"
             features_df.set_index("label", inplace=True, drop=False)
+            # To display correct
+            features_df["index"] = features_df["label"]
             label_layer.features = features_df
         else:
             show_info(
