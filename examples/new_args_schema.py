@@ -16,11 +16,17 @@ Script to generate JSON schemas for task arguments afresh, and write them
 to the package manifest.
 """
 import json
+import logging
+
 from pathlib import Path
 
 from fractal_tasks_core.dev.lib_args_schemas import (
     create_schema_for_single_task,
 )
+from fractal_tasks_core.dev.lib_task_docs import create_docs_info
+from fractal_tasks_core.dev.lib_task_docs import create_docs_link
+
+PACKAGE = "napari_ome_zarr_roi_loader"
 
 if __name__ == "__main__":
     # To use this function, 2 workarounds are required:
@@ -36,16 +42,13 @@ if __name__ == "__main__":
         "convert_metadata_components_2D_to_3D.py",
     ]
     for ind, executable in enumerate(task_executable_list):
-        print(f"[{executable}] Start")
-        try:
-            schema = create_schema_for_single_task(
-                executable,
-                package="napari_ome_zarr_roi_loader",
-                inner_pydantic_models=INNER_PYDANTIC_MODELS,
-            )
-            task_schema_path = Path(executable[:-3] + ".json")
-            with task_schema_path.open("w") as f:
-                json.dump(schema, f, indent=2)
-                f.write("\n")
-        except Exception as e:
-            print(f"[{executable}] Skip. Original error:\n{str(e)}")
+        logging.info(f"[{executable}] START")
+        schema = create_schema_for_single_task(
+            executable,
+            package="napari_ome_zarr_roi_loader",
+        )
+        task_schema_path = Path(executable[:-3] + ".json")
+        with task_schema_path.open("w") as f:
+            json.dump(schema, f, indent=2)
+            f.write("\n")
+

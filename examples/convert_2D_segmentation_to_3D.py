@@ -66,6 +66,8 @@ def convert_2D_segmentation_to_3D(
     """
     # TODO: Not using output_path atm, but hard-coded to expect the output
     # component in the input path
+    # FIXME: Add overwrite functionality: Unclear how to add it with 
+    # omezarrpy's write_labels function
 
     if level != 0:
         raise NotImplementedError("Only level 0 is supported at the moment")
@@ -100,7 +102,6 @@ def convert_2D_segmentation_to_3D(
 
     # 2) Create the 3D stack of the label image
     label_img_3D = da.stack([label_img.squeeze()] * new_z_planes)
-    label_img_3D
 
     # 3) Save changed label image to OME-Zarr
     with zarr.open(zarr_3D_url, mode="rw+") as zarr_img:
@@ -109,8 +110,7 @@ def convert_2D_segmentation_to_3D(
             zarr_img,
             name=new_label_name,
             axes="zyx",
-            chunks=chunks,
-            storage_options={"dimension_separator": "/"},
+            storage_options={"dimension_separator": "/", "chunks": chunks},
         )
 
         # Hacky way of ensuring we have the correct metadata, because the
@@ -140,6 +140,17 @@ def convert_2D_segmentation_to_3D(
 
             # Update the tables .zattrs for the new table
             update_table_metadata(group_tables, new_table_name)
+
+            # TODO: Replace with using write_table from fractal_tasks_core
+            # Need to switch to having the image group available.
+            # write_table(
+            #     image_group: zarr.Group,
+            #     table_name: str,
+            #     table: ad.AnnData,
+            #     overwrite: bool = False,
+            #     table_attrs: Optional[dict[str, Any]] = None,
+            #     logger: Optional[logging.Logger] = None,
+            # )
 
     return {}
 

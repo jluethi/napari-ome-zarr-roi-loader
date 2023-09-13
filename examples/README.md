@@ -15,12 +15,8 @@ conda create --name fractal_2d_to_3D_tasks python=3.9 -y
 3. Install the dependencies
 
 ```
-pip install fractal-tasks-core==0.10.0
+pip install fractal-tasks-core==0.11.0
 pip install ome-zarr
-pip install zarr
-pip install anndata
-pip install dask
-pip install pydantic
 ```
 
 4. Add the task via CLI client
