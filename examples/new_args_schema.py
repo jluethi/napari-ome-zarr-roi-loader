@@ -51,4 +51,3 @@ if __name__ == "__main__":
         with task_schema_path.open("w") as f:
             json.dump(schema, f, indent=2)
             f.write("\n")
-
