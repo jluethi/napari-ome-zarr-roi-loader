@@ -232,24 +232,7 @@ def convert_2D_segmentation_to_3D(
 if __name__ == "__main__":
     from fractal_tasks_core.tasks._utils import run_fractal_task
 
-    # run_fractal_task(
-    #     task_function=convert_2D_segmentation_to_3D,
-    #     logger_name=logger.name,
-    # )
-    output_path = "/Volumes/tungsten/scratch/gliberal/Users/luetjoel/20230626_deployment_130/fractal-demos/examples/10_2D_to_3D_workflow/output_2D_to_3D_workflow_2/"
-    output_path = "/Users/joel/Desktop/output_2D_to_3D_workflow_2"
-    input_paths = [output_path]
-    component = "20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0"
-    metadata = {}
-    label_name = "organoids"
-    ROI_tables_to_copy = ["organoid_ROI_table"]
-    overwrite = True
-    convert_2D_segmentation_to_3D(
-        input_paths = input_paths,
-        output_path = output_path,
-        component = component,
-        metadata = metadata,
-        label_name = label_name,
-        ROI_tables_to_copy = ROI_tables_to_copy,
-        overwrite = overwrite,
+    run_fractal_task(
+        task_function=convert_2D_segmentation_to_3D,
+        logger_name=logger.name,
     )
