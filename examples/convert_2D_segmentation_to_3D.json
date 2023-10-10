@@ -53,6 +53,12 @@
       "default": "mip",
       "type": "string",
       "description": "Suffix of the 2D OME-Zarr to copy from"
+    },
+    "overwrite": {
+      "title": "Overwrite",
+      "default": false,
+      "type": "boolean",
+      "description": "If `True`, overwrite existing label and ROI tables in the 3D OME-Zarr"
     }
   },
   "required": [
@@ -60,8 +66,7 @@
     "output_path",
     "component",
     "metadata",
-    "label_name",
-    "ROI_tables_to_copy"
+    "label_name"
   ],
   "additionalProperties": false
 }

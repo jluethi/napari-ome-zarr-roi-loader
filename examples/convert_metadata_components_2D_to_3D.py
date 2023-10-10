@@ -19,14 +19,15 @@ def convert_metadata_components_2D_to_3D(
     A fractal workflow sets them to the mip.zarr components after running the
     maximum intensity projection task. This resets them to the 3D components.
 
-    :param input_paths: List of paths to the input files (Fractal managed)
-    :param output_path: Path to the output file (Fractal managed)
-    :param component: Component name, e.g. "plate_name.zarr/B/03/0"
+    Args:
+        input_paths: List of paths to the input files (Fractal managed)
+        output_path: Path to the output file (Fractal managed)
+        component: Component name, e.g. "plate_name.zarr/B/03/0"
                       (Fractal managed)
-    :param metadata: Metadata dictionary (Fractal managed)
-    :param from_2d_to_3d: If True, removes the suffix. If False,
+        metadata: Metadata dictionary (Fractal managed)
+        from_2d_to_3d: If True, removes the suffix. If False,
                           adds the suffix to the metadata
-    :param suffix: Suffix of the 2D OME-Zarr
+        suffix: Suffix of the 2D OME-Zarr
     """
     old_image_list = metadata["image"]
     old_well_list = metadata["well"]
