@@ -6,12 +6,11 @@ import anndata as ad
 import dask.array as da
 import numpy as np
 import zarr
-from anndata._io.specs import write_elem
 from pydantic.decorator import validate_arguments
-from fractal_tasks_core.lib_ngff import load_NgffImageMeta 
-from fractal_tasks_core.lib_write import prepare_label_group
-from fractal_tasks_core.lib_pyramid_creation import build_pyramid
-from fractal_tasks_core.lib_write import write_table
+from fractal_tasks_core.ngff.zarr_utils import load_NgffImageMeta 
+from fractal_tasks_core.labels import prepare_label_group
+from fractal_tasks_core.pyramids import build_pyramid
+from fractal_tasks_core.tables import write_table
 
 logger = logging.getLogger(__name__)
 
